@@ -1,0 +1,38 @@
+name: My Secure Linux RDP
+on: 
+  workflow_dispatch: # باش تخدمو بيدك وقتما بغيتي
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Tailscale
+        run: |
+          curl -fsSL https://tailscale.com/install.sh | sh
+
+      - name: Connect to Tailscale
+        run: |
+          sudo tailscale up --authkey ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Setup Desktop Environment (XFCE)
+        run: |
+          sudo apt update
+          sudo apt install -y xfce4 xfce4-goodies xrdp
+          # تحديد واجهة XFCE كواجهة افتراضية لـ RDP
+          echo "exec startxfce4" > ~/.xsession
+          sudo systemctl enable xrdp
+          sudo systemctl start xrdp
+
+      - name: Set User Password
+        run: |
+          # هنا كتحط المودباس ديالك باش تدخل لـ RDP (بدل 'MyPassword123' بشي حاجة أخرى)
+          echo "runneradmin:MyPassword123" | sudo chpasswd
+
+      - name: Keep Alive (6 Hours)
+        run: |
+          echo "RDP is ready! Connect using your Tailscale IP."
+          # هاد السطر كيخلي السيرفر شغال لـ 6 سوايع
+          sleep 21600 
