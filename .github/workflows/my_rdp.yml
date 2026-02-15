@@ -1,6 +1,6 @@
-name: My Secure Linux RDP
+name: GNOME RDP
 on: 
-  workflow_dispatch: # باش تخدمو بيدك وقتما بغيتي
+  workflow_dispatch:
 
 jobs:
   build:
@@ -14,26 +14,38 @@ jobs:
           curl -fsSL https://tailscale.com/install.sh | sh
 
       - name: Connect to Tailscale
+        env:
+          TS_KEY: ${{ secrets.TAILSCALE_AUTH_KEY }}
         run: |
-          sudo tailscale up --authkey ${{ secrets.TAILSCALE_AUTH_KEY }}
+          # استعمال الكود اللي صلحناه باش ما يوقعش Error فـ Tailscale
+          sudo tailscale up --authkey=$TS_KEY
 
-      - name: Setup Desktop Environment (XFCE)
+      - name: Install GNOME Desktop and XRDP
         run: |
-          sudo apt update
-          sudo apt install -y xfce4 xfce4-goodies xrdp
-          # تحديد واجهة XFCE كواجهة افتراضية لـ RDP
-          echo "exec startxfce4" > ~/.xsession
+          sudo apt-get update
+          # تثبيت GNOME مع المكونات الضرورية باش ما تطلعش الشاشة السوداء
+          sudo apt-get install -y ubuntu-desktop-minimal xrdp xorgxrdp
+          
+          # إعداد السيستيم باش يخدم GNOME فـ RDP أوتوماتيكياً
+          echo "gnome-session" > ~/.xsession
           sudo systemctl enable xrdp
           sudo systemctl start xrdp
 
-      - name: Set User Password
+      - name: Create RDP User and Set Password
         run: |
-          sudo useradd -m runneradmin || echo "User already exists"
-          echo "runneradmin:MyPassword123" | sudo chpasswd
-
+          # صاوبنا يوزر سميتو rdp ومودباس rdp123 مع صلاحيات كاملة
+          sudo useradd -m rdp
+          echo "rdp:rdp123" | sudo chpasswd
+          sudo adduser rdp sudo
+          
+          # تأكيد الواجهة لليوزر rdp باش ما يطلعش ليك Error ديال Failsafe Session
+          echo "gnome-session" | sudo tee /home/rdp/.xsession
+          sudo chown rdp:rdp /home/rdp/.xsession
 
       - name: Keep Alive (6 Hours)
         run: |
-          echo "RDP is ready! Connect using your Tailscale IP."
-          # هاد السطر كيخلي السيرفر شغال لـ 6 سوايع
-          sleep 21600 
+          echo "GNOME RDP is Ready!"
+          echo "IP: Search in your Tailscale App"
+          echo "User: rdp"
+          echo "Pass: rdp123"
+          sleep 21600
