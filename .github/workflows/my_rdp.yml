@@ -28,8 +28,9 @@ jobs:
 
       - name: Set User Password
         run: |
-          # هنا كتحط المودباس ديالك باش تدخل لـ RDP (بدل 'MyPassword123' بشي حاجة أخرى)
+          sudo useradd -m runneradmin || echo "User already exists"
           echo "runneradmin:MyPassword123" | sudo chpasswd
+
 
       - name: Keep Alive (6 Hours)
         run: |
