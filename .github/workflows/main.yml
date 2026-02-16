@@ -1,4 +1,4 @@
-name: Hidden
+name: WINDOWS
 
 on: 
   workflow_dispatch:
