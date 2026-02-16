@@ -1,0 +1,51 @@
+name: UBUNTU RDP Full
+on: 
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Tailscale
+        run: curl -fsSL https://tailscale.com/install.sh | sh
+
+      - name: Connect to Tailscale
+        env:
+          TS_KEY: ${{ secrets.TAILSCALE_AUTH_KEY }}
+        run: sudo tailscale up --authkey=$TS_KEY
+
+      - name: Install GNOME & XRDP
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ubuntu-desktop-minimal xrdp xorgxrdp
+
+      - name: Setup Full Admin User
+        run: |
+          # إنشاء المستخدم
+          sudo useradd -m rdp
+          echo "rdp:rdp123" | sudo chpasswd
+          
+          # إعطاء صلاحيات sudo كاملة بلا ما يطلب مودباس فـ Terminal
+          echo "rdp ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/rdp
+          
+          # إعطاء الصلاحيات للواجهة الرسومية (Polkit)
+          # هاد الكود كيخليك تبدل الإعدادات (Dark mode, Users, etc.) بلا مشاكل
+          sudo mkdir -p /etc/polkit-1/localauthority/50-local.d/
+          sudo bash -c "cat > /etc/polkit-1/localauthority/50-local.d/45-allow-everything.pkla" <<EOF
+          [Allow Everything]
+          Identity=unix-user:rdp
+          Action=*
+          ResultAny=yes
+          ResultInactive=yes
+          ResultActive=yes
+          EOF
+
+          # إعداد السيسيو
+          echo "gnome-session" | sudo tee /home/rdp/.xsession
+          sudo chown rdp:rdp /home/rdp/.xsession
+
+      - name: Keep Alive (6 Hours)
+        run: sleep 21600
