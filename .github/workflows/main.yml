@@ -1,48 +1,51 @@
-name: Windows
+name: Hidden
 
 on: 
   workflow_dispatch:
 
 jobs:
-  windows-session:
+  windows-hidden:
     runs-on: windows-latest
     
     steps:
-      # 1. تنزيل وتسطيب Tailscale
-      - name: ⬇️ Install Tailscale
+      # 1. تانصطاليو Tailscale بالسكات (Silent)
+      - name: ⬇️ Install Tailscale (Silent)
         run: |
-          Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-          choco install tailscale -y
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+          choco install tailscale -y --no-progress
 
-      # 2. التوصيل مع Tailscale
-      - name: 🔌 Connect to Tailscale
+      # 2. كنخدمو Tailscale بوضعية Unattended (ماكيحتاجش واجهة)
+      # هادشي كيخليه يخدم واخا تسد الـ RDP وتعاود ترجع
+      - name: 🔌 Connect Tailscale (Background Service)
         run: |
-          & 'C:\Program Files\Tailscale\tailscale.exe' up --authkey="${{ secrets.TAILSCALE_AUTH_KEY }}" --hostname="github-windows-server" --unattended
+          & 'C:\Program Files\Tailscale\tailscale.exe' up --authkey="${{ secrets.TAILSCALE_AUTH_KEY }}" --hostname="github-hidden-vps" --unattended --force-reauth
 
-      # 3. إعداد اليوزر (المهم هنا هو الباسورد القوي)
-      - name: 🛠️ Setup User & Enable RDP
+      # 3. كنقادو اليوزر والباسورد (نفس الباسورد القديم)
+      - name: 🛠️ Configure User & Firewall
         run: |
-          # ضروري الباسورد يكون مخلط (كبار، صغار، رموز) وإلا مغيخدمش
+          # نفس الباسورد اللي طلبتي يبقى
           net user runneradmin "Maroc@2026!"
           
-          # تفعيل RDP
+          # تفعيل RDP فالريجيستري
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -value 0
           
-          # فتح البور فـ Firewall
+          # فتح البور فـ Firewall باش يدوز
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
           
-          Write-Host "RDP Setup Complete."
+          Write-Host "Configuration Done."
 
-      # 4. معلومات الدخول
-      - name: ℹ️ Connection Info
+      # 4. تذكير بالمعلومات
+      - name: ℹ️ Login Details
         run: |
           Write-Host "=========================================="
-          Write-Host "USERNAME: runneradmin"
-          Write-Host "PASSWORD: Maroc@2026!"
+          Write-Host "✅ Server is running in background mode."
+          Write-Host "Username: runneradmin"
+          Write-Host "Password: Maroc@2026!"
           Write-Host "=========================================="
 
-      # 5. البقاء قيد التشغيل (6 سوايع)
+      # 5. الساروت باش يبقى شاعل (هاد الكوموند كتخدم فالسيرفر ماشي فالشاشة)
       - name: ⏳ Keep Alive (6 Hours)
         run: |
-          Write-Host "Session is running..."
+          Write-Host "Session active. You can close RDP and reconnect freely."
           Start-Sleep -Seconds 21600
