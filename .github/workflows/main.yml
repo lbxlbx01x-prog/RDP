@@ -8,38 +8,41 @@ jobs:
     runs-on: windows-latest
     
     steps:
-      # 1. التوصيل مع Tailscale
-      - name: 🔌 Connect to Tailscale
-        uses: tailscale/github-action@v2
-        with:
-          authkey: ${{ secrets.TAILSCALE_AUTH_KEY }}
-          hostname: github-windows-server
+      # 1. تنزيل وتسطيب Tailscale يدوياً (حيت الأكشن مكتخدمش فالويندوز)
+      - name: ⬇️ Install Tailscale
+        run: |
+          Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+          choco install tailscale -y
 
-      # 2. تحديد الباسورد وفتح RDP
+      # 2. تفعيل Tailscale والربط بالساروت
+      - name: 🔌 Connect to Tailscale
+        run: |
+          & 'C:\Program Files\Tailscale\tailscale.exe' up --authkey="${{ secrets.TAILSCALE_AUTH_KEY }}" --hostname="github-windows-server" --unattended
+
+      # 3. إعداد اليوزر وفتح RDP
       - name: 🛠️ Setup User & Enable RDP
         run: |
-          # هنا كنحددو الباسورد لليوزر الأدمين (runneradmin)
-          # الباسورد درت ليك فيه حروف كبار وصغار ورموز حيت ويندوز كيبغي Strong Password
-          net user runneradmin "Maroc@2024!" 
+          # تحديد الباسورد
+          net user runneradmin "Maroc@2024!"
           
           # تفعيل RDP فالريجيستري
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -value 0
           
-          # فتح البور فـ Firewall باش يدوز
+          # فتح البور فـ Firewall
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
           
           Write-Host "RDP Setup Complete."
 
-      # 3. عرض معلومات الكونيكسيون
+      # 4. معلومات الدخول
       - name: ℹ️ Connection Info
         run: |
           Write-Host "=========================================="
-          Write-Host "Connect via Tailscale IP"
-          Write-Host "Username: runneradmin"
-          Write-Host "Password: Maroc@2024!"
+          Write-Host "Go to your Tailscale Admin Console to get the IP"
+          Write-Host "Username: rdp"
+          Write-Host "Password: rdp123"
           Write-Host "=========================================="
 
-      # 4. البقاء قيد التشغيل (6 سوايع)
+      # 5. باش يبقى شاعل 6 سوايع
       - name: ⏳ Keep Alive (6 Hours)
         run: |
           Write-Host "Session is running..."
