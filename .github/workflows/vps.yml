@@ -1,29 +1,25 @@
-name: Tailscale VPS
+name: VPS
 on: workflow_dispatch
 
 jobs:
   my-vps:
     runs-on: ubuntu-latest
     steps:
-      # 1. Check out code (Standard)
       - uses: actions/checkout@v3
 
-      # 2. Connect to Tailscale
-      - name: Connect to Tailscale
-        uses: tailscale/github-action@v2
-        with:
-          authkey: ${{ secrets.TAILSCALE_AUTH_KEY }}
-          version: latest
-          hostname: github-runner-vps  # هادي السمية اللي غاتبان ليك فـ Tailscale
+      # الحل للمشكل: نتيليشارجيوه ونتبتوه يدوياً بطريقة مضمونة
+      - name: Install Tailscale Manually
+        run: |
+          curl -fsSL https://tailscale.com/install.sh | sh
+          sudo tailscale up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=github-runner-vps --ssh
 
-      # 3. Create a user password (Optional but useful for sudo)
       - name: Set Password for Runner
         run: echo "runner:123456" | sudo chpasswd
 
-      # 4. Keep Alive (Sleep for 6 hours)
       - name: Wait for connection
         run: |
-          echo "✅ Connected! Check your Tailscale dashboard for IP."
-          echo "Username: runner"
+          echo "✅ Tailscale is UP! Check your dashboard."
+          echo "IP Address:"
+          tailscale ip -4
           echo "⏳ Session will be alive for 6 hours..."
           sleep 6h
